@@ -1,0 +1,103 @@
+# Import custom tools package from Github. These are some simple accessor functions
+# to make it easier to work with these data files. 
+!if [ ! -e h5hep ]; then git  clone https://github.com/mattbellis/h5hep.git; fi 
+!cd h5hep; git pull; python setup.py -q install --user; cd 
+
+!if [ ! -e particle_physics_simplified ]; then git  clone https://github.com/mattbellis/particle_physics_simplified.git; fi
+!cd particle_physics_simplified; git pull; python setup.py -q install --user; cd
+
+# Note that the -q option in the above "python setup.py ..." commands suppresses
+# diagnostic output. So if you are having issues, you may want to remove the -q
+
+import pps_tools as pps
+import numpy as np
+import h5hep
+pps.download_from_drive('Single_D0B_to_Kpipi0_ISR_LARGE.hdf5')
+infile = 'data/Single_D0B_to_Kpipi0_ISR_LARGE.hdf5'
+#Calculating in=variant Mass
+def InvarientMass(argus):
+  e = 0
+  px = 0 
+  py = 0
+  pz=0
+  for argu in argus:
+    e+= argu['e']
+    px+= argu['px']
+    py+= argu['py']
+    pz+= argu['pz']
+  mass = e*e -(px*px +py*py + pz*pz)
+  if mass>0:
+    return  np.sqrt(mass) 
+  elif mass<0:
+    return  np.sqrt(-mass)
+
+answer=[]
+for collision in collisions:
+  kaons = collision['kaons']
+  pions = collision['pions']
+  pl = len(pions)
+  for kaon in kaons:
+    if kaon['q']>0:
+      for first in range(0,pl-1):
+        for second in range (first+1,pl-1):
+          if pions[first]['q']>0 and pions[second]['q']<0:
+            invarient = InvarientMass([kaon,pions[first],pions[second]])
+            answer.append(invarient)
+          elif pions[first]['q']<0 and pions[second]['q']>0:
+            invarient = InvarientMass([kaon,pions[first],pions[second]])
+            answer.append(invarient)
+    elif kaon['q']<0:
+      for first in range(0,pl-1):
+        for second in range (first+1,pl-1):
+          if pions[first]['q']>0 and pions[second]['q']>0:
+            invarient = InvarientMass([kaon,pions[first],pions[second]])
+            answer.append(invarient)
+import matplotlib.pylab as plt
+plt.figure()
+plt.hist(answer,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+plt.title("Test of D decaying into K- Pi+,Pi- or k+ Pi+,Pi-")
+
+new_particle = []
+for collision in collisions:
+  kaons = collision['kaons']
+  pions = collision['pions']
+  pl = len(pions)
+  for kaon in kaons:
+    for pion in pions:
+      if pion['q']<0:
+        invarient = InvarientMass([kaon,pion])
+        new_particle.append(invarient)
+plt.figure()
+plt.hist(new_particle,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+plt.title("Search for a new paricle")
+
+new_particle2 = []
+for collision in collisions:
+  kaons = collision['kaons']
+  pions = collision['pions']
+  pl = len(pions)
+  for kaon in kaons:
+    for pion in pions:
+      if pion['q']>0:
+        invarient = InvarientMass([kaon,pion])
+        new_particle2.append(invarient)
+plt.figure()
+plt.hist(new_particle2,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+plt.title("Search for a new paricle")
+
+massofkaons = []
+ 
+for kaon in kaons:
+  ff = InvarientMass([kaon])
+  massofkaons.append(ff)
+plt.figure()
+plt.hist(massofkaons,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+plt.title("mass of kaons alone")
