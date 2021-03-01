@@ -1,0 +1,66 @@
+
+# Fetch data file
+pps.download_from_drive('dimuons_100k.hdf5')
+
+# open and read data file
+infile = 'data/dimuons_100k.hdf5'
+collisions = pps.get_collisions(infile,experiment='CMS',verbose=False)
+
+#gettin the energy from  the collisions 
+energies = []
+
+for collision in collisions:          # loops over all the events in the file
+  muons = collision['muons']      # gets the list of all muons in the event
+  f = 0
+  
+  for muon in muons:           # loops over each muon in the current event
+    e = muon['e']                # gets the energy of the muon
+    f+=e                       #gets the egergy of each muon in an event and adds them together 
+    
+  energies.append(f)            # createas a list of the energy of all the collision parent particle 
+  
+  # similar things for all the momentum and the charge 
+mx = []
+my = []
+mz = []
+ch= []
+ 
+  
+for collision in collisions:          
+  muons = collision['muons']     
+  f1= 0
+  f2= 0
+  f3= 0
+  f4= 0
+  for muon in muons:           
+    px = muon['px']           
+    py = muon['py']
+    pz = muon['pz']
+    q = muon['q']
+    f1+=px              
+    f2+=py
+    f3+=pz
+    f4+=q
+    
+  mx.append(f1)
+  my.append(f2)
+  mz.append(f3)
+  ch.append(f4)
+  
+#converting everything to arrays to calculate invarient mass 
+en_arr = np.array(energies)
+xm_arr = np.array(mx)
+ym_arr = np.array(my)
+zm_arr = np.array(mz)
+
+#creating new variable to get the square of all the variables and calculating the square of the mass 
+en_arr2 = en_arr*en_arr 
+xm_arr2 = xm_arr*xm_arr
+ym_arr2 = ym_arr*ym_arr
+zm_arr2 = zm_arr*zm_arr 
+mass2 = (en_arr2-(xm_arr2+ym_arr2+zm_arr2))
+mass = np.sqrt(mass2)
+
+from matplotlib import pyplot as plt  #units is (MeV)^2
+plt.hist(mass,bins=75,range=(9,10));
+plt.grid()
