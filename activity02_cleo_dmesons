@@ -1,0 +1,176 @@
+###### This cell need only be run once per session ##############
+###### Make sure your runtime type is Python 3 #########
+
+# Import h5hep from Github. This is to allow us to read these
+# particular files. 
+!pip install git+https://github.com/mattbellis/h5hep.git
+
+# Import custom tools package from Github. These are some simple accessor functions
+# to make it easier to work with these data files. 
+!pip install git+https://github.com/mattbellis/particle_physics_simplified.git
+
+import pps_tools as pps
+import h5hep
+
+pps.download_from_drive('basicPID_R24-AllEvents-Run1-OnPeak-R24-388.hdf5')
+
+infile = 'data/basicPID_R24-AllEvents-Run1-OnPeak-R24-388.hdf5'
+
+collisions = pps.get_collisions(infile,experiment='BaBar',verbose=False)
+print(len(collisions), " collisions")
+
+import numpy as np
+import matplotlib.pylab as plt
+
+def invmass(p4s):
+  etot = 0
+  pxtot = 0
+  pytot = 0
+  pztot = 0
+  for p4 in p4s:
+    etot += p4['e']
+    pxtot += p4['px']
+    pytot += p4['py']
+    pztot += p4['pz']
+  m2 = etot*etot - (pxtot*pxtot + pytot*pytot + pztot*pztot)
+  if m2>=0:
+    return np.sqrt(m2)
+  else:
+    return np.sqrt(-m2)
+    
+KPiMass=[]
+
+for entry,collision in enumerate(collisions):
+  kaons=collision["kaons"] #Phi decays into K+ and K-
+  pions=collision["pions"] #K short decays into pi+ and pi-
+  
+  for kaon in kaons:
+    for pion in pions:
+      if kaon['q'] < 0 and pion['q'] > 0:
+        mass = invmass([kaon,pion])
+        KPiMass.append(mass)
+        
+plt.figure()
+plt.hist(KPiMass,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+plt.title("Test of D decaying into K- and Pi+")
+
+#D+→K0s K+
+
+KKMass = []
+
+for collision in collisions:
+  kaons = collision['kaons']
+  pions=collision['pions']
+  ps=len(pions)
+  
+  for kaon in kaons:
+    if kaon['q'] > 0:
+      for i in range(0,ps-1):
+        for j in range(i+1,ps):
+          if pions[i]['q']*pions[j]['q'] < 0:
+            mass = invmass([kaon,pions[i],pions[j]])
+            KKMass.append(mass)
+plt.figure()
+plt.hist(KKMass,bins=200,range=(0.5,3))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+
+#D+→K−π+π+
+
+KPPMass = []
+
+for collision in collisions:
+  kaons = collision['kaons']
+  pions = collision['pions']
+  ps = len(pions)
+  
+  for kaon in kaons:
+    if kaon['q'] < 0:
+      for i in range(0,ps-1):
+        for j in range(i+1,ps):
+          if pions[i]['q'] > 0 and pions[j]['q'] > 0:
+            mass = invmass([kaon,pions[i],pions[j]])
+            KPPMass.append(mass)
+plt.figure()
+plt.hist(KPPMass,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+
+#D+→K0sπ+
+
+kPMass = []
+
+for collision in collisions:
+  pions = collision['pions']
+  pis = len(pions)
+  
+  for i in range(0,pis-2):
+    for j in range(i+1,pis-1):
+      for k in range(j+1,pis):
+        if pions[i]['q'] + pions[j]['q'] + pions[k]['q'] == 1:
+          mass = invmass([pions[i],pions[j],pions[k]])
+          kPMass.append(mass)
+plt.figure()
+plt.hist(kPMass,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+
+#D+→K−K+π+
+kKPMass=[]
+
+for collision in collisions:
+  pions = collision['pions']
+  kaons=collision['kaons']
+  pis = len(pions)
+  kis = len(kaons)
+  
+  for i in range(0,kis-1):
+    for j in range(i+1,kis):
+      if kaons[i]['q']*kaons[j]['q'] < 0:
+        for pion in pions:
+          if pion['q'] > 0:
+            mass = invmass([pion,kaons[i],kaons[j]])
+            kKPMass.append(mass)
+            
+plt.hist(kKPMass,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number of entries")
+
+#D+→K0sπ+π+
+KPpMass=[]
+for collision in collisions:
+  pions = collision['pions']
+  pis = len(pions)
+  
+  for h in range(0,pis-3):
+    for i in range(h+1,pis-2):
+      for j in range(i+1,pis-1):
+        for k in range(j+1,pis):
+          if pions[h]['q']+pions[i]['q']+pions[j]['q']+pions[k]['q']==2:
+            mass=invmass([pions[h],pions[i],pions[j],pions[k]])
+            KPpMass.append(mass)
+ plt.hist(KPpMass,bins=200,range=(0,5))
+plt.xlabel("Mass")
+plt.ylabel("Number o' entries")
+
+#D0→K0SK0S
+KKMass = []
+
+for collision in collisions:
+  pions = collision['pions']
+  pi = len(pions)
+  
+  if pi>3:
+    for i in range(0,pi-3):
+      for j in range(i+1,pi-2):
+        if pions[i]['q']*pions[j]['q']<0:
+          for a in range(j+1,pi-1):
+            for b in range(a+1,pi):
+              if pions[a]['q']*pions[b]['q']<0:
+                mass = invmass([pions[i],pions[j],pions[a],pions[b]])
+                KKMass.append(mass)
+plt.figure()
+plt.hist(KKMass,bins=200,range=(0,5))
+plt.xlabel("Mass (GeV)"),plt.ylabel("Number of entries")
